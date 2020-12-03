@@ -190,7 +190,7 @@ func (s *domainService) CreatePrimaryHostedZoneWithoutUserinput(_ context.Contex
 			return s.store.GetHostedZone(z.Domain)
 		}
 	}
-	
+
 	if opts.Domain == "" || opts.FQDN == "" {
 		return nil, errors.New("missing required primary hosted zone information domain and FQDN")
 	}
