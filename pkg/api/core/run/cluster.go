@@ -121,6 +121,11 @@ func (c *clusterRun) DeleteCluster(opts api.ClusterDeleteOpts) error {
 		return fmt.Errorf("failed to retrieve eksctl binary: %w", err)
 	}
 
+	_, err = cli.DeleteFargateProfiles(opts.ID.ClusterName, opts.FargateProfileName)
+	if err != nil {
+		return fmt.Errorf("failed to delete fargate profiles: %w", err)
+	}
+
 	_, err = cli.DeleteCluster(opts.ID.ClusterName)
 	if err != nil {
 		return fmt.Errorf("failed to delete cluster: %w", err)

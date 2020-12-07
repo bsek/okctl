@@ -4,6 +4,9 @@ package cloud
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
+
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 
@@ -62,6 +65,7 @@ func NewFromSession(region, principalARN string, sess *session.Session) (*Provid
 
 	services.cfn = cloudformation.New(sess)
 	services.ec2 = ec2.New(sess)
+	services.elbv2 = elbv2.New(sess)
 	services.eks = eks.New(sess)
 	services.ssm = ssm.New(sess)
 	services.sq = servicequotas.New(sess)
@@ -99,14 +103,15 @@ func NewSession(region string, auth awsauth.Authenticator) (*session.Session, *a
 
 // Services stores access to the various AWS APIs
 type Services struct {
-	cfn cloudformationiface.CloudFormationAPI
-	ec2 ec2iface.EC2API
-	eks eksiface.EKSAPI
-	ssm ssmiface.SSMAPI
-	sq  servicequotasiface.ServiceQuotasAPI
-	r53 route53iface.Route53API
-	cip cognitoidentityprovideriface.CognitoIdentityProviderAPI
-	cf  cloudfrontiface.CloudFrontAPI
+	cfn   cloudformationiface.CloudFormationAPI
+	ec2   ec2iface.EC2API
+	elbv2 elbv2iface.ELBV2API
+	eks   eksiface.EKSAPI
+	ssm   ssmiface.SSMAPI
+	sq    servicequotasiface.ServiceQuotasAPI
+	r53   route53iface.Route53API
+	cip   cognitoidentityprovideriface.CognitoIdentityProviderAPI
+	cf    cloudfrontiface.CloudFrontAPI
 
 	region       string
 	principalARN string
@@ -145,6 +150,11 @@ func (s *Services) EC2() ec2iface.EC2API {
 // EKS returns an interface to the AWS EKS API
 func (s *Services) EKS() eksiface.EKSAPI {
 	return s.eks
+}
+
+// ELBV2 returns an interface to the AWS ELBV2 API
+func (s *Services) ELBV2() elbv2iface.ELBV2API {
+	return s.elbv2
 }
 
 // CloudFormation returns an interface to the AWS CloudFormation API

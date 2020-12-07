@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"path"
 
 	"github.com/oslokommune/okctl/pkg/apis/eksctl.io/v1alpha5"
@@ -10,8 +9,6 @@ import (
 	"github.com/logrusorgru/aurora/v3"
 	"github.com/oslokommune/okctl/pkg/binaries/run/awsiamauthenticator"
 	"github.com/oslokommune/okctl/pkg/binaries/run/kubectl"
-	"github.com/oslokommune/okctl/pkg/virtualenv"
-
 	"github.com/oslokommune/okctl/pkg/commands"
 
 	"github.com/oslokommune/okctl/pkg/kubeconfig"
@@ -39,7 +36,7 @@ func buildShowCommand(o *okctl.Okctl) *cobra.Command {
 
 // nolint: funlen gocognit
 func buildShowCredentialsCommand(o *okctl.Okctl) *cobra.Command {
-	opts := virtualenv.VirtualEnvironmentOpts{}
+	okctlEnvironment := commands.OkctlEnvironment{}
 
 	cmd := &cobra.Command{
 		Use:   "credentials [env]",
@@ -54,7 +51,7 @@ func buildShowCredentialsCommand(o *okctl.Okctl) *cobra.Command {
 				return err
 			}
 
-			opts, err = virtualenv.GetVirtualEnvironmentOpts(o)
+			okctlEnvironment, err = commands.GetOkctlEnvironment(o)
 
 			if err != nil {
 				return err
@@ -63,17 +60,16 @@ func buildShowCredentialsCommand(o *okctl.Okctl) *cobra.Command {
 			return nil
 		},
 		RunE: func(_ *cobra.Command, _ []string) error {
-			osEnv := []string{"PATH=" + os.Getenv("PATH")}
-			venv, err := virtualenv.GetVirtualEnvironment(&opts, osEnv)
-			if err != nil {
-				return err
+			okctlEnvVars := commands.GetOkctlEnvVars(okctlEnvironment)
+
+			for k, v := range okctlEnvVars {
+				_, err := fmt.Fprintf(o.Out, "export %s=%s\n", k, v)
+				if err != nil {
+					return err
+				}
 			}
 
-			for _, v := range venv {
-				fmt.Fprintf(o.Out, "export %s\n", v)
-			}
-
-			outputDir, err := o.GetRepoOutputDir(opts.Environment)
+			outputDir, err := o.GetRepoOutputDir(okctlEnvironment.Environment)
 			if err != nil {
 				return err
 			}
@@ -83,7 +79,7 @@ func buildShowCredentialsCommand(o *okctl.Okctl) *cobra.Command {
 				return err
 			}
 
-			kubeConfig := path.Join(appDir, config.DefaultCredentialsDirName, opts.ClusterName, config.DefaultClusterKubeConfig)
+			kubeConfig := path.Join(appDir, config.DefaultCredentialsDirName, okctlEnvironment.ClusterName, config.DefaultClusterKubeConfig)
 
 			k, err := o.BinariesProvider.Kubectl(kubectl.Version)
 			if err != nil {
@@ -110,7 +106,7 @@ func buildShowCredentialsCommand(o *okctl.Okctl) *cobra.Command {
 				return err
 			}
 
-			_, err = fmt.Print(o.Err, txt)
+			_, err = fmt.Fprint(o.Err, txt)
 			if err != nil {
 				return err
 			}

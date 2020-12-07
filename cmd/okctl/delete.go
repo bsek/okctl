@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/AlecAivazis/survey/v2"
-
 	"github.com/oslokommune/okctl/pkg/client"
 
+	"github.com/oslokommune/okctl/pkg/api/core/cleanup"
+
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/oslokommune/okctl/pkg/spinner"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -17,7 +18,8 @@ import (
 )
 
 const (
-	deleteClusterArgs = 1
+	deleteClusterArgs    = 1
+	deleteHostedZoneFlag = "i-know-what-i-am-doing-delete-hosted-zone-and-records"
 )
 
 func buildDeleteCommand(o *okctl.Okctl) *cobra.Command {
@@ -26,8 +28,10 @@ func buildDeleteCommand(o *okctl.Okctl) *cobra.Command {
 		Short: "Delete commands",
 	}
 
-	cmd.AddCommand(buildDeleteClusterCommand(o))
+	deleteClusterCommand := buildDeleteClusterCommand(o)
+	cmd.AddCommand(deleteClusterCommand)
 	cmd.AddCommand(buildDeleteTestClusterCommand(o))
+	deleteClusterCommand.Flags().String(deleteHostedZoneFlag, "false", "Delete hosted zone")
 
 	return cmd
 }
@@ -51,7 +55,7 @@ func (o *DeleteClusterOpts) Validate() error {
 	)
 }
 
-// nolint: funlen
+// nolint: gocyclo, funlen, gocognit
 func buildDeleteClusterCommand(o *okctl.Okctl) *cobra.Command {
 	opts := &DeleteClusterOpts{}
 
@@ -94,7 +98,7 @@ including VPC, this is a highly destructive operation.`,
 
 			return nil
 		},
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			id := api.ID{
 				Region:       opts.Region,
 				AWSAccountID: opts.AWSAccountID,
@@ -102,6 +106,8 @@ including VPC, this is a highly destructive operation.`,
 				Repository:   opts.Repository,
 				ClusterName:  opts.ClusterName,
 			}
+
+			delzones, _ := cmd.Flags().GetString(deleteHostedZoneFlag)
 
 			ready, err := checkifReady(id.ClusterName, o)
 			if err != nil || !ready {
@@ -125,9 +131,26 @@ including VPC, this is a highly destructive operation.`,
 
 			formatErr := o.ErrorFormatter(fmt.Sprintf("delete cluster %s", opts.Environment), userDir)
 
-			err = services.Domain.DeletePrimaryHostedZone(o.Ctx, client.DeletePrimaryHostedZoneOpts{
-				ID: id,
-			})
+			vpc, err := services.Vpc.GetVPC(o.Ctx, id)
+			if err != nil {
+				return formatErr(err)
+			}
+
+			if delzones == "true" {
+				err = services.Domain.DeletePrimaryHostedZone(o.Ctx, o.CloudProvider, client.DeletePrimaryHostedZoneOpts{
+					ID: id,
+				})
+				if err != nil {
+					return formatErr(err)
+				}
+			}
+
+			err = services.IdentityManager.DeleteIdentityPool(o.Ctx, o.CloudProvider, id)
+			if err != nil {
+				return formatErr(err)
+			}
+
+			err = services.ALBIngressController.DeleteALBIngressController(o.Ctx, id)
 			if err != nil {
 				return formatErr(err)
 			}
@@ -142,14 +165,20 @@ including VPC, this is a highly destructive operation.`,
 				return formatErr(err)
 			}
 
-			err = services.ALBIngressController.DeleteALBIngressController(o.Ctx, id)
+			err = cleanup.DeleteDanglingALBs(o.CloudProvider, vpc.VpcID)
 			if err != nil {
 				return formatErr(err)
 			}
 
 			err = services.Cluster.DeleteCluster(o.Ctx, api.ClusterDeleteOpts{
-				ID: id,
+				ID:                 id,
+				FargateProfileName: "fp-default",
 			})
+			if err != nil {
+				return formatErr(err)
+			}
+
+			err = cleanup.DeleteDanglingSecurityGroups(o.CloudProvider, vpc.VpcID)
 			if err != nil {
 				return formatErr(err)
 			}
