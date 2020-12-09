@@ -1,23 +1,25 @@
+// Package controller knows how to ensure desired state and current state matches
 package controller
 
 import (
 	"fmt"
 
-	"github.com/oslokommune/okctl/pkg/controller/reconsiler"
+	"github.com/oslokommune/okctl/pkg/controller/reconciler"
 	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 	"github.com/spf13/afero"
 )
 
+// SynchronizeOpts contains the necessary information that Synchronize() needs to do its work
 type SynchronizeOpts struct {
 	DesiredTree *resourcetree.ResourceNode
 
-	ReconsiliationManager *reconsiler.ReconsilerManager
+	ReconciliationManager *reconciler.Manager
 
 	Fs        *afero.Afero
 	OutputDir string
 
-	GithubGetter reconsiler.GithubGetter
-	GithubSetter reconsiler.GithubSetter
+	GithubGetter reconciler.GithubGetter
+	GithubSetter reconciler.GithubSetter
 
 	CIDRGetter              StringFetcher
 	PrimaryHostedZoneGetter HostedZoneFetcher
@@ -64,18 +66,18 @@ func Synchronize(opts *SynchronizeOpts) error {
 
 	diffTree.ApplyFunction(applyCurrentState, currentStateTree)
 
-	return handleNode(opts.ReconsiliationManager, &diffTree)
+	return handleNode(opts.ReconciliationManager, &diffTree)
 }
 
-// handleNode knows how to run Reconsile() on every node of a ResourceNode tree
-func handleNode(reconsilerManager *reconsiler.ReconsilerManager, currentNode *resourcetree.ResourceNode) error {
-	_, err := reconsilerManager.Reconsile(currentNode)
+// handleNode knows how to run Reconcile() on every node of a ResourceNode tree
+func handleNode(reconcilerManager *reconciler.Manager, currentNode *resourcetree.ResourceNode) error {
+	_, err := reconcilerManager.Reconcile(currentNode)
 	if err != nil {
-		return fmt.Errorf("error reconsiling node: %w", err)
+		return fmt.Errorf("error reconciling node: %w", err)
 	}
 
 	for _, node := range currentNode.Children {
-		err = handleNode(reconsilerManager, node)
+		err = handleNode(reconcilerManager, node)
 		if err != nil {
 			return fmt.Errorf("error handling node: %w", err)
 		}

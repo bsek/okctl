@@ -1,4 +1,4 @@
-package reconsiler
+package reconciler
 
 import (
 	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
