@@ -77,7 +77,7 @@ const (
 // CommonMetadata represents metadata required by most if not all operations on services
 type CommonMetadata struct {
 	Ctx       context.Context
-	ClusterId api.ID
+	ClusterID api.ID
 }
 
 // StateRefreshFn is a function that attempts to retrieve state potentially can only be retrieved at runtime. E.g.:

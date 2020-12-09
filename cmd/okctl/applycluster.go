@@ -109,7 +109,7 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 
 			reconciliationManager := reconciler.NewReconcilerManager(&resourcetree.CommonMetadata{
 				Ctx:       o.Ctx,
-				ClusterId: id,
+				ClusterID: id,
 			})
 
 			reconciliationManager.AddReconciler(resourcetree.ResourceNodeTypeZone, reconciler.NewZoneReconciler(services.Domain))
