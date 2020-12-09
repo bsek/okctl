@@ -35,6 +35,7 @@ func (o *applyClusterOpts) Validate() error {
 	)
 }
 
+// nolint funlen
 func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 	opts := applyClusterOpts{}
 
@@ -88,6 +89,10 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 			}
 
 			spin, err := spinner.New("synchronizing", o.Err)
+			if err != nil {
+				return fmt.Errorf("error creating spinner: %w", err)
+			}
+
 			services, err := o.ClientServices(spin)
 			if err != nil {
 				return fmt.Errorf("error getting services: %w", err)

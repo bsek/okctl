@@ -39,6 +39,7 @@ will be stored, together with your AWS account details.
 
 `
 
+// CreateOnRepoDataNotFoundWithNoUserInput configures okctl when a repository configuration was not found
 func CreateOnRepoDataNotFoundWithNoUserInput(declaration *v1alpha1.Cluster) DataNotFoundFn {
 	return func(c *config.Config) error {
 		var err error

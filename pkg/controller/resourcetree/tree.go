@@ -1,3 +1,4 @@
+// Package resourcetree contains Resource Node specification and common operations done on them
 package resourcetree
 
 import (
@@ -34,6 +35,7 @@ const (
 	ResourceNodeTypeArgoCD
 )
 
+// ResourceNodeTypeToString knows how to convert a Resource Node type to a human readable string
 func ResourceNodeTypeToString(nodeType ResourceNodeType) string {
 	switch nodeType {
 	case ResourceNodeTypeGroup:
