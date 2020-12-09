@@ -8,7 +8,7 @@ import (
 	"github.com/oslokommune/okctl/pkg/apis/okctl.io/v1alpha1"
 	"github.com/oslokommune/okctl/pkg/config"
 	"github.com/oslokommune/okctl/pkg/config/state"
-	"github.com/oslokommune/okctl/pkg/controller/reconsiler"
+	"github.com/oslokommune/okctl/pkg/controller/reconciler"
 	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 	"github.com/oslokommune/okctl/pkg/git"
 	"github.com/spf13/afero"
@@ -26,7 +26,7 @@ type existingServices struct {
 }
 
 // NewCreateCurrentStateGraphOpts creates an initialized existingServices struct
-func NewCreateCurrentStateGraphOpts(fs *afero.Afero, outputDir string, githubGetter reconsiler.GithubGetter) (*existingServices, error) {
+func NewCreateCurrentStateGraphOpts(fs *afero.Afero, outputDir string, githubGetter reconciler.GithubGetter) (*existingServices, error) {
 	return &existingServices{
 		hasGithubSetup:          githubTester(githubGetter()),
 		hasPrimaryHostedZone:    directoryTester(fs, outputDir, config.DefaultDomainBaseDir),
@@ -88,14 +88,14 @@ func ApplyDesiredStateMetadata(graph *resourcetree.ResourceNode, cluster *v1alph
 		return errors.New("expected primary hosted zone node was not found")
 	}
 
-	primaryHostedZoneNode.Metadata = reconsiler.HostedZoneMetadata{Domain: cluster.PrimaryDNSZone.ParentDomain}
+	primaryHostedZoneNode.Metadata = reconciler.HostedZoneMetadata{Domain: cluster.PrimaryDNSZone.ParentDomain}
 
 	vpcNode := graph.GetNode(&resourcetree.ResourceNode{Type: resourcetree.ResourceNodeTypeVPC})
 	if vpcNode == nil {
 		return errors.New("expected vpc node was not found")
 	}
 
-	vpcNode.Metadata = reconsiler.VPCMetadata{
+	vpcNode.Metadata = reconciler.VPCMetadata{
 		Cidr:             cluster.VPC.CIDR,
 		HighAvailability: cluster.VPC.HighAvailability,
 	}
@@ -110,14 +110,14 @@ func ApplyDesiredStateMetadata(graph *resourcetree.ResourceNode, cluster *v1alph
 		return fmt.Errorf("error fetching full git repo name: %w", err)
 	}
 
-	githubNode.Metadata = reconsiler.GithubMetadata{
+	githubNode.Metadata = reconciler.GithubMetadata{
 		Organization: cluster.Github.Organisation,
 		Repository:   repo,
 	}
 
 	argocdNode := graph.GetNode(&resourcetree.ResourceNode{Type: resourcetree.ResourceNodeTypeArgoCD})
 	if argocdNode != nil {
-		argocdNode.Metadata = reconsiler.ArgocdMetadata{Organization: cluster.Github.Organisation}
+		argocdNode.Metadata = reconciler.ArgocdMetadata{Organization: cluster.Github.Organisation}
 	}
 
 	return nil

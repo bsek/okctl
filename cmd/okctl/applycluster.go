@@ -13,7 +13,7 @@ import (
 	"github.com/oslokommune/okctl/pkg/config/load"
 	"github.com/oslokommune/okctl/pkg/config/state"
 	"github.com/oslokommune/okctl/pkg/controller"
-	"github.com/oslokommune/okctl/pkg/controller/reconsiler"
+	"github.com/oslokommune/okctl/pkg/controller/reconciler"
 	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 	"github.com/oslokommune/okctl/pkg/okctl"
 	"github.com/oslokommune/okctl/pkg/spinner"
@@ -107,23 +107,22 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 				return fmt.Errorf("could not apply desired state metadata: %w", err)
 			}
 
-			reconsiliationManager := reconsiler.NewReconsilerManager(&resourcetree.CommonMetadata{
-				Ctx: o.Ctx,
-				ClusterId:  id,
+			reconciliationManager := reconciler.NewReconcilerManager(&resourcetree.CommonMetadata{
+				Ctx:       o.Ctx,
+				ClusterId: id,
 			})
 
-			reconsiliationManager.AddReconsiler(resourcetree.ResourceNodeTypeZone, reconsiler.NewZoneReconsiler(services.Domain))
-			reconsiliationManager.AddReconsiler(resourcetree.ResourceNodeTypeVPC, reconsiler.NewVPCReconsiler(services.Vpc))
-			reconsiliationManager.AddReconsiler(resourcetree.ResourceNodeTypeCluster, reconsiler.NewClusterReconsiler(services.Cluster))
-			reconsiliationManager.AddReconsiler(resourcetree.ResourceNodeTypeExternalSecrets, reconsiler.NewExternalSecretsReconsiler(services.ExternalSecrets))
-			reconsiliationManager.AddReconsiler(resourcetree.ResourceNodeTypeALBIngress, reconsiler.NewALBIngressReconsiler(services.ALBIngressController))
-			reconsiliationManager.AddReconsiler(resourcetree.ResourceNodeTypeExternalDNS, reconsiler.NewExternalDNSReconsiler(services.ExternalDNS))
-			reconsiliationManager.AddReconsiler(resourcetree.ResourceNodeTypeGithub, reconsiler.NewGithubReconsiler(services.Github))
-			reconsiliationManager.AddReconsiler(resourcetree.ResourceNodeTypeIdentityManager, reconsiler.NewIdentityManagerReconsiler(services.IdentityManager))
-
+			reconciliationManager.AddReconciler(resourcetree.ResourceNodeTypeZone, reconciler.NewZoneReconciler(services.Domain))
+			reconciliationManager.AddReconciler(resourcetree.ResourceNodeTypeVPC, reconciler.NewVPCReconciler(services.Vpc))
+			reconciliationManager.AddReconciler(resourcetree.ResourceNodeTypeCluster, reconciler.NewClusterReconciler(services.Cluster))
+			reconciliationManager.AddReconciler(resourcetree.ResourceNodeTypeExternalSecrets, reconciler.NewExternalSecretsReconciler(services.ExternalSecrets))
+			reconciliationManager.AddReconciler(resourcetree.ResourceNodeTypeALBIngress, reconciler.NewALBIngressReconciler(services.ALBIngressController))
+			reconciliationManager.AddReconciler(resourcetree.ResourceNodeTypeExternalDNS, reconciler.NewExternalDNSReconciler(services.ExternalDNS))
+			reconciliationManager.AddReconciler(resourcetree.ResourceNodeTypeGithub, reconciler.NewGithubReconciler(services.Github))
+			reconciliationManager.AddReconciler(resourcetree.ResourceNodeTypeIdentityManager, reconciler.NewIdentityManagerReconciler(services.IdentityManager))
 			synchronizeOpts := &controller.SynchronizeOpts{
 				DesiredTree:             desiredGraph,
-				ReconsiliationManager:   reconsiliationManager,
+				ReconciliationManager:   reconciliationManager,
 				Fs:                      o.FileSystem,
 				OutputDir:               outputDir,
 				GithubGetter:            o.RepoStateWithEnv.GetGithub,

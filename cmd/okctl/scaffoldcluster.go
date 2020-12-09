@@ -67,7 +67,6 @@ func buildScaffoldClusterCommand(o *okctl.Okctl) *cobra.Command {
 	flags.StringVarP(&opts.AWSAccountID, "aws-account-id", "i", "123456789123", usageAWSAccountID)
 
 	cmd.Hidden = true
-
 	return cmd
 }
 
